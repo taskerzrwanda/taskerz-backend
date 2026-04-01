@@ -8,14 +8,22 @@ php artisan cache:clear || true
 php artisan route:clear || true
 php artisan view:clear || true
 
-# Optional: run migrations (if needed)
-# php artisan migrate --force
+# Start PHP-FPM in foreground temporarily to check it starts
+echo "Starting PHP-FPM..."
+php-fpm -F &
+PHP_FPM_PID=$!
 
-# Start PHP-FPM
-php-fpm -D
+# Wait for PHP-FPM to be ready
+sleep 3
 
-# Wait a bit
-sleep 2
+# Check if PHP-FPM is running
+if ! ps | grep -v grep | grep php-fpm > /dev/null; then
+    echo "ERROR: PHP-FPM failed to start!"
+    exit 1
+fi
 
-# Start Nginx
-nginx -g 'daemon off;'
+echo "PHP-FPM started successfully"
+
+# Start Nginx in foreground
+echo "Starting Nginx..."
+exec nginx -g 'daemon off;'
