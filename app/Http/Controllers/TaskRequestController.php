@@ -64,23 +64,23 @@ class TaskRequestController extends Controller
             $taskRequest = TaskRequest::create($request->all());
             $taskRequest->load('subTask');
 
-            $admin = User::where('role', 'admin')->first();
+            // $admin = User::where('role', 'admin')->first();
 
-            if ($admin) {
-                try {
-                    Mail::to($admin->email)->send(new TaskerEmailSender($taskRequest, 'admin'));
-                } catch (\Exception $mailError) {
-                    \Log::error('Admin email failed: ' . $mailError->getMessage());
-                }
-            }
+            // if ($admin) {
+            //     try {
+            //         Mail::to($admin->email)->send(new TaskerEmailSender($taskRequest, 'admin'));
+            //     } catch (\Exception $mailError) {
+            //         \Log::error('Admin email failed: ' . $mailError->getMessage());
+            //     }
+            // }
 
-            if ($request->email) {
-                try {
-                    Mail::to($request->email)->send(new TaskerEmailSender($taskRequest, 'requester'));
-                } catch (\Exception $mailError) {
-                    \Log::error('User email failed: ' . $mailError->getMessage());
-                }
-            }
+            // if ($request->email) {
+            //     try {
+            //         Mail::to($request->email)->send(new TaskerEmailSender($taskRequest, 'requester'));
+            //     } catch (\Exception $mailError) {
+            //         \Log::error('User email failed: ' . $mailError->getMessage());
+            //     }
+            // }
 
             return response()->json(
                 [

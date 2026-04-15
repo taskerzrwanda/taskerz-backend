@@ -12,6 +12,9 @@ php artisan view:clear || true
 # echo "Running database migrations..."
 # php artisan migrate --force
 
+# Rebuild config cache
+php artisan config:cache || true
+
 
 echo "======================================="
 echo "Starting PHP-FPM with Unix socket..."

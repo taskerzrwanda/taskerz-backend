@@ -19,6 +19,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 
+
+Route::get('/env-test', function () {
+    return [
+        'mailer' => config('mail.default'),
+        'resend_key' => config('services.resend.key'),
+    ];
+});
+
+
 Route::get('/check-upload-limits', function() {
     return [
         'upload_max_filesize' => ini_get('upload_max_filesize'),
