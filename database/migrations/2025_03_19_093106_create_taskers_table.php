@@ -11,40 +11,40 @@ return new class extends Migration
      */
     public function up(): void
     {
-      Schema::create('taskers', function (Blueprint $table) {
-    $table->id();
+        Schema::create('taskers', function (Blueprint $table) {
+            $table->id();
 
-    $table->string('name');
-    $table->string('nationality');
-    $table->string('gender');
-    $table->string('education');
+            $table->string('name', 191);
+            $table->string('nationality', 191);
+            $table->string('gender', 50);
+            $table->string('education', 191);
 
-    $table->string('email')->unique();
-    $table->string('phone');
+            $table->string('email', 191)->unique(); // ✅ FIX
+            $table->string('phone', 50);
 
-    $table->string('profession');
-    $table->text('work_experience')->nullable();
+            $table->string('profession', 191);
+            $table->text('work_experience')->nullable();
 
-    // Location
-    $table->string('city')->nullable();
-    $table->string('district')->nullable();
-    $table->decimal('latitude', 10, 8)->nullable();
-    $table->decimal('longitude', 11, 8)->nullable();
+            // Location
+            $table->string('city', 191)->nullable();
+            $table->string('district', 191)->nullable();
+            $table->decimal('latitude', 10, 8)->nullable();
+            $table->decimal('longitude', 11, 8)->nullable();
 
-    // Meta
-    $table->json('skills')->nullable();
-    $table->integer('completed_tasks')->default(0);
-    $table->decimal('rating', 3, 2)->nullable();
+            // Meta
+            $table->text('skills')->nullable(); // ✅ FIX (json → text)
+            $table->integer('completed_tasks')->default(0);
+            $table->decimal('rating', 3, 2)->nullable();
 
-    // Optional but recommended
-    $table->enum('status', ['approved', 'pending', 'rejected'])->default('pending');
+            // Status
+            $table->enum('status', ['approved', 'pending', 'rejected'])->default('pending');
 
-    $table->timestamps();
+            $table->timestamps();
 
-    // Indexes (AFTER columns exist)
-    $table->index(['city', 'status']);
-    $table->index('status');
-});
+            // Indexes
+            $table->index(['city', 'status']);
+            $table->index('status');
+        });
     }
 
     /**

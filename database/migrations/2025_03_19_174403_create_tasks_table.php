@@ -9,21 +9,21 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
-
+   public function up(): void
+{
+    if (!Schema::hasTable('tasks')) {
         Schema::create('tasks', function (Blueprint $table) {
             $table->id();
             $table->string('image')->nullable();
             $table->text('title');
-            $table->enum('status', ['active', 'inactive'])->default('active');
-            $table->json('tags')->nullable();
+            $table->string('status')->default('active');
+            $table->text('tags')->nullable();
             $table->timestamps();
             $table->softDeletes();
-
             $table->index('status');
         });
     }
+}
 
     /**
      * Reverse the migrations.

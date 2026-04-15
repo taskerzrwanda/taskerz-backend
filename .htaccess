@@ -8,3 +8,9 @@
     RewriteCond %{REQUEST_URI} !^public
 
     RewriteRule ^(.*)$ public/$1 [L]
+
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "https://taskers.rw"
+    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE"
+    Header set Access-Control-Allow-Headers "*"
+</IfModule>

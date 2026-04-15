@@ -12,6 +12,8 @@ return new class extends Migration
     public function up(): void
     {
 
+    if (!Schema::hasTable('sub_tasks')) {
+
        Schema::create('sub_tasks', function (Blueprint $table) {
             $table->id();
             $table->foreignId('task_id')->constrained()->onDelete('cascade');
@@ -25,6 +27,7 @@ return new class extends Migration
 
             $table->index(['task_id', 'status']);
         });
+    }
     }
 
     /**

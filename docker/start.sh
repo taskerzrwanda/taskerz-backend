@@ -8,6 +8,11 @@ php artisan cache:clear || true
 php artisan route:clear || true
 php artisan view:clear || true
 
+# Run migrations on production
+# echo "Running database migrations..."
+# php artisan migrate --force
+
+
 echo "======================================="
 echo "Starting PHP-FPM with Unix socket..."
 echo "======================================="
