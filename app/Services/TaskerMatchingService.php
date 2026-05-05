@@ -10,12 +10,29 @@ class TaskerMatchingService
 {
     public function findSuitableTaskers(TaskRequest $taskRequest, int $limit = 10)
     {
+        $taskRequest->loadMissing('subTask.task');
         $subTask = $taskRequest->subTask;
         $task = $subTask->task;
 
-        $taskers = Tasker::approved()
-            ->where('status', 'approved')
-            ->get()
+        $location    = strtolower($taskRequest->location);
+        $subTaskName = strtolower($subTask->name ?? '');
+        $taskTitle   = strtolower($task->title ?? '');
+
+        // Pre-filter at DB: keep only candidates whose city/district appears in the
+        // request location, or whose profession appears in subTask.name / task.title.
+        // Skill-only matchers (score 20) are intentionally excluded — they rarely
+        // outrank location/profession matches (40+).
+        $candidates = Tasker::approved()
+            ->where(function ($q) use ($location, $subTaskName, $taskTitle) {
+                $q->whereRaw('? LIKE CONCAT("%", LOWER(city), "%")', [$location])
+                  ->orWhereRaw('? LIKE CONCAT("%", LOWER(district), "%")', [$location])
+                  ->orWhereRaw('? LIKE CONCAT("%", LOWER(profession), "%")', [$subTaskName])
+                  ->orWhereRaw('? LIKE CONCAT("%", LOWER(profession), "%")', [$taskTitle]);
+            })
+            ->limit(50)
+            ->get();
+
+        return $candidates
             ->map(function ($tasker) use ($taskRequest, $subTask, $task) {
                 $tasker->match_score = $this->score($tasker, $taskRequest, $subTask, $task);
                 return $tasker;
@@ -24,8 +41,6 @@ class TaskerMatchingService
             ->sortByDesc('match_score')
             ->take($limit)
             ->values();
-
-        return $taskers;
     }
 
     protected function score(Tasker $tasker, TaskRequest $taskRequest, SubTask $subTask, $task): int

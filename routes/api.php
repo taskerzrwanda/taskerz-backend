@@ -18,33 +18,6 @@ use App\Http\Controllers\TaskerDashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-
-
-Route::get('/env-test', function () {
-    return [
-        'mailer' => config('mail.default'),
-        'resend_key' => config('services.resend.key'),
-    ];
-});
-
-
-Route::get('/check-upload-limits', function() {
-    return [
-        'upload_max_filesize' => ini_get('upload_max_filesize'),
-        'post_max_size' => ini_get('post_max_size'),
-        'memory_limit' => ini_get('memory_limit'),
-        'max_execution_time' => ini_get('max_execution_time'),
-    ];
-});
-
-Route::get('/check-test-cloudinary', function() {
-    return [
-        'cloud_name' => config('cloudinary.cloud_name') ?? env('CLOUDINARY_CLOUD_NAME'),
-        'api_key' => config('cloudinary.api_key') ?? env('CLOUDINARY_API_KEY'),
-        'has_secret' => (config('cloudinary.api_secret') ?? env('CLOUDINARY_API_SECRET')) ? 'yes' : 'no'
-    ];
-});
-
 // Authentication routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('logout', [AuthController::class, 'logout']);

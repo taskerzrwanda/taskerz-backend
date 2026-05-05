@@ -12,19 +12,46 @@ use Illuminate\Support\Str;
 
 class TaskerController extends Controller
 {
-    //
-    // Get all taskers
-      public function index(Request $request)
+    public function index(Request $request)
     {
-        // Only return taskers if explicitly requested via query param
-        $getAll = $request->query('get_all', false);
+        $query = Tasker::query();
 
-        if ($getAll) {
-            return response()->json(Tasker::latest()->get(), 200);
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%")
+                  ->orWhere('profession', 'like', "%{$search}%");
+            });
         }
 
-        // Return empty array by default - no automatic data fetching
-        return response()->json([], 200);
+        if ($request->filled('status') && in_array($request->status, ['approved', 'pending', 'rejected'], true)) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('profession')) {
+            $query->where('profession', 'like', '%' . $request->input('profession') . '%');
+        }
+
+        if ($request->filled('district')) {
+            $query->where('district', 'like', '%' . $request->input('district') . '%');
+        }
+
+        $paginator = $query->latest()->paginate($request->integer('per_page', 20));
+
+        return response()->json([
+            'success' => true,
+            'data' => $paginator->items(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page'    => $paginator->lastPage(),
+                'per_page'     => $paginator->perPage(),
+                'total'        => $paginator->total(),
+                'from'         => $paginator->firstItem(),
+                'to'           => $paginator->lastItem(),
+            ],
+        ]);
     }
 
     public function search(Request $request)

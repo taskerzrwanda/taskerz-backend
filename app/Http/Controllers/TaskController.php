@@ -30,19 +30,27 @@ class TaskController extends Controller
     {
         $query = Task::with('activeSubTasks');
 
-        if ($request->has('status')) {
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        if ($request->has('search')) {
-            $query->where('title', 'like', '%' . $request->search . '%');
+        if ($request->filled('search')) {
+            $query->where('title', 'like', '%' . $request->input('search') . '%');
         }
 
-        $tasks = $query->get();
+        $paginator = $query->latest()->paginate($request->integer('per_page', 20));
 
         return response()->json([
             'success' => true,
-            'data' => $tasks
+            'data' => $paginator->items(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page'    => $paginator->lastPage(),
+                'per_page'     => $paginator->perPage(),
+                'total'        => $paginator->total(),
+                'from'         => $paginator->firstItem(),
+                'to'           => $paginator->lastItem(),
+            ],
         ]);
     }
 

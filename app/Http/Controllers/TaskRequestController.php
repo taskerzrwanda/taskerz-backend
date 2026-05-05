@@ -15,27 +15,44 @@ class TaskRequestController extends Controller
     {
         $query = TaskRequest::with(['subTask.task', 'tasker']);
 
-        if ($request->has('status')) {
+        if ($request->filled('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
         }
 
-        if ($request->has('sub_task_id')) {
+        if ($request->filled('sub_task_id')) {
             $query->where('sub_task_id', $request->sub_task_id);
         }
 
-        if ($request->has('tasker_id')) {
+        if ($request->filled('tasker_id')) {
             $query->where('tasker_id', $request->tasker_id);
         }
 
-        if ($request->has('unassigned')) {
+        if ($request->filled('unassigned')) {
             $query->whereNull('tasker_id');
         }
 
-        $requests = $query->latest()->get();
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('full_name', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%")
+                  ->orWhere('location', 'like', "%{$search}%");
+            });
+        }
+
+        $paginator = $query->latest()->paginate($request->integer('per_page', 20));
 
         return response()->json([
             'success' => true,
-            'data' => $requests,
+            'data' => $paginator->items(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page'    => $paginator->lastPage(),
+                'per_page'     => $paginator->perPage(),
+                'total'        => $paginator->total(),
+                'from'         => $paginator->firstItem(),
+                'to'           => $paginator->lastItem(),
+            ],
         ]);
     }
 

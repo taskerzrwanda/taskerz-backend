@@ -14,16 +14,7 @@ class TaskerDashboardController extends Controller
      */
     public function overview(Request $request)
     {
-        $accessToken = $request->header('X-Access-Token');
-
-        $tasker = Tasker::where('access_token', $accessToken)->first();
-
-        if (!$tasker) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized'
-            ], 401);
-        }
+        $tasker = $request->input('authenticated_tasker');
 
         $stats = [
             'total_assigned' => $tasker->taskRequests()->count(),
@@ -45,16 +36,7 @@ class TaskerDashboardController extends Controller
      */
     public function assignedTasks(Request $request)
     {
-        $accessToken = $request->header('X-Access-Token');
-
-        $tasker = Tasker::where('access_token', $accessToken)->first();
-
-        if (!$tasker) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized'
-            ], 401);
-        }
+        $tasker = $request->input('authenticated_tasker');
 
         $query = $tasker->taskRequests()->with(['subTask.task']);
 
@@ -76,16 +58,7 @@ class TaskerDashboardController extends Controller
      */
     public function pendingTasks(Request $request)
     {
-        $accessToken = $request->header('X-Access-Token');
-
-        $tasker = Tasker::where('access_token', $accessToken)->first();
-
-        if (!$tasker) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized'
-            ], 401);
-        }
+        $tasker = $request->input('authenticated_tasker');
 
         $tasks = $tasker->taskRequests()
             ->with(['subTask.task'])
@@ -104,16 +77,7 @@ class TaskerDashboardController extends Controller
      */
     public function completedTasks(Request $request)
     {
-        $accessToken = $request->header('X-Access-Token');
-
-        $tasker = Tasker::where('access_token', $accessToken)->first();
-
-        if (!$tasker) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized'
-            ], 401);
-        }
+        $tasker = $request->input('authenticated_tasker');
 
         $tasks = $tasker->taskRequests()
             ->with(['subTask.task'])
@@ -132,16 +96,7 @@ class TaskerDashboardController extends Controller
      */
     public function analytics(Request $request)
     {
-        $accessToken = $request->header('X-Access-Token');
-
-        $tasker = Tasker::where('access_token', $accessToken)->first();
-
-        if (!$tasker) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized'
-            ], 401);
-        }
+        $tasker = $request->input('authenticated_tasker');
 
         // Recent activity (last 30 days)
         $recentActivity = TaskRequest::where('tasker_id', $tasker->id)
@@ -202,16 +157,7 @@ class TaskerDashboardController extends Controller
      */
     public function completeTask(Request $request, $taskRequestId)
     {
-        $accessToken = $request->header('X-Access-Token');
-
-        $tasker = Tasker::where('access_token', $accessToken)->first();
-
-        if (!$tasker) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized'
-            ], 401);
-        }
+        $tasker = $request->input('authenticated_tasker');
 
         $taskRequest = TaskRequest::where('id', $taskRequestId)
             ->where('tasker_id', $tasker->id)
