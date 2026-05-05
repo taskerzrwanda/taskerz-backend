@@ -66,7 +66,7 @@ Task ──< SubTask ──< TaskRequest >── Tasker (nullable, set on assign
 ## Conventions
 
 - Responses: `{ success: bool, message?: string, data?: ... }` is the prevailing shape; some older endpoints just return the bare model. Match the surrounding controller.
-- **Index endpoints paginate** (`Tasker`, `Task`, `TaskRequest::index`): wrap with `{ success, data: $paginator->items(), meta: { current_page, last_page, per_page, total, from, to } }`. Use `->paginate($request->integer('per_page', 20))`. Add `search` / `status` query params to the controller, not in JS.
+- **Index endpoints paginate** (`Tasker`, `Task`, `SubTask`, `TaskRequest::index`): wrap with `{ success, data: $paginator->items(), meta: { current_page, last_page, per_page, total, from, to } }`. Use `->paginate($request->integer('per_page', 20))`. Add `search` / `status` query params to the controller, not in JS. Use `$request->filled(...)` (treats empty string as missing), not `$request->has(...)`.
 - Use `FormRequest` validation when possible (see `app/Http/Requests/`); inline `Validator::make` is also used.
 - New CRUD endpoints: add the route under the right middleware group in `api.php`, the controller method, and any FormRequest. Then add a matching service in `taskerz-fronted/src/lib/services/`.
 - File uploads: use Cloudinary (config in `config/cloudinary.php`, env `CLOUDINARY_*`). Currently synchronous in the request path.

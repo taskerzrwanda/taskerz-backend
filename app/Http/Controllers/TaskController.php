@@ -75,15 +75,11 @@ class TaskController extends Controller
     {
         $data = $request->all();
 
-        if ($request->has('tags') && is_string($request->tags)) {
-            $data['tags'] = json_decode($request->tags, true);
-        }
-
         $validator = Validator::make($data, [
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:12288',
             'title' => 'required|string',
+            'description' => 'nullable|string',
             'status' => 'nullable|in:active,inactive',
-            'tags' => 'nullable|array'
         ]);
 
         if ($validator->fails()) {
@@ -136,15 +132,11 @@ class TaskController extends Controller
 
         $data = $request->all();
 
-        if ($request->has('tags') && is_string($request->tags)) {
-            $data['tags'] = json_decode($request->tags, true);
-        }
-
         $validator = Validator::make($data, [
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:12288',
             'title' => 'required|string',
+            'description' => 'nullable|string',
             'status' => 'nullable|in:active,inactive',
-            'tags' => 'nullable|array'
         ]);
 
         if ($validator->fails()) {
