@@ -4,10 +4,11 @@
 # /public/storage
 /storage/*.key
 /storage/debugbar
+# /storage/certs
 
 # Environment files
 .env
-.env.*
+.env.*s
 !.env.example
 
 # Logs
