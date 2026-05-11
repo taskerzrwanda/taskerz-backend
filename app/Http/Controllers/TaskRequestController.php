@@ -24,11 +24,11 @@ class TaskRequestController extends Controller
         }
 
         if ($request->filled('tasker_id')) {
-            $query->where('tasker_id', $request->tasker_id);
+            $query->where('user_id', $request->tasker_id);
         }
 
         if ($request->filled('unassigned')) {
-            $query->whereNull('tasker_id');
+            $query->whereNull('user_id');
         }
 
         if ($request->filled('search')) {
@@ -213,7 +213,10 @@ class TaskRequestController extends Controller
     public function assignTasker(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
-            'tasker_id' => 'required|exists:taskers,id',
+            'tasker_id' => [
+                'required',
+                \Illuminate\Validation\Rule::exists('users', 'id')->where('role', 'tasker'),
+            ],
         ]);
 
         if ($validator->fails()) {

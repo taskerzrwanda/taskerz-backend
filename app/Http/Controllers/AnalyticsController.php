@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Task;
 use App\Models\SubTask;
 use App\Models\TaskRequest;
-use App\Models\Tasker;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -36,7 +36,7 @@ class AnalyticsController extends Controller
             SUM(status = 'cancelled') as cancelled
         ")->first();
 
-        $taskers = Tasker::selectRaw("
+        $taskers = User::taskers()->selectRaw("
             COUNT(*) as total,
             SUM(status = 'approved') as approved,
             SUM(status = 'pending') as pending,
@@ -164,8 +164,7 @@ class AnalyticsController extends Controller
     {
         $limit = $request->input('limit', 10);
 
-        $topTaskers = Tasker::select('taskers.*')
-            ->where('status', 'approved')
+        $topTaskers = User::approvedTaskers()
             ->orderBy('completed_tasks', 'desc')
             ->orderBy('rating', 'desc')
             ->limit($limit)

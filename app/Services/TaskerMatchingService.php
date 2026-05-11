@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\Tasker;
-use App\Models\TaskRequest;
 use App\Models\SubTask;
+use App\Models\TaskRequest;
+use App\Models\User;
 
 class TaskerMatchingService
 {
@@ -12,17 +12,13 @@ class TaskerMatchingService
     {
         $taskRequest->loadMissing('subTask.task');
         $subTask = $taskRequest->subTask;
-        $task = $subTask->task;
+        $task    = $subTask->task;
 
         $location    = strtolower($taskRequest->location);
         $subTaskName = strtolower($subTask->name ?? '');
         $taskTitle   = strtolower($task->title ?? '');
 
-        // Pre-filter at DB: keep only candidates whose city/district appears in the
-        // request location, or whose profession appears in subTask.name / task.title.
-        // Skill-only matchers (score 20) are intentionally excluded — they rarely
-        // outrank location/profession matches (40+).
-        $candidates = Tasker::approved()
+        $candidates = User::approvedTaskers()
             ->where(function ($q) use ($location, $subTaskName, $taskTitle) {
                 $q->whereRaw('? LIKE CONCAT("%", LOWER(city), "%")', [$location])
                   ->orWhereRaw('? LIKE CONCAT("%", LOWER(district), "%")', [$location])
@@ -43,21 +39,18 @@ class TaskerMatchingService
             ->values();
     }
 
-    protected function score(Tasker $tasker, TaskRequest $taskRequest, SubTask $subTask, $task): int
+    protected function score(User $tasker, TaskRequest $taskRequest, SubTask $subTask, $task): int
     {
         $score = 0;
 
-        // 1. Location match (40)
         if ($this->locationMatches($tasker, $taskRequest->location)) {
             $score += 40;
         }
 
-        // 2. Profession match (40)
         if ($this->professionMatches($tasker, $subTask, $task)) {
             $score += 40;
         }
 
-        // 3. Skill match (20)
         if ($this->skillMatches($tasker, $subTask, $task)) {
             $score += 20;
         }
@@ -65,23 +58,27 @@ class TaskerMatchingService
         return $score;
     }
 
-    protected function locationMatches(Tasker $tasker, string $location): bool
+    protected function locationMatches(User $tasker, string $location): bool
     {
         $location = strtolower($location);
 
-        return str_contains($location, strtolower($tasker->city)) ||
-               str_contains($location, strtolower($tasker->district));
+        return str_contains($location, strtolower($tasker->city ?? '')) ||
+               str_contains($location, strtolower($tasker->district ?? ''));
     }
 
-    protected function professionMatches(Tasker $tasker, SubTask $subTask, $task): bool
+    protected function professionMatches(User $tasker, SubTask $subTask, $task): bool
     {
-        $profession = strtolower($tasker->profession);
+        $profession = strtolower($tasker->profession ?? '');
+
+        if ($profession === '') {
+            return false;
+        }
 
         return str_contains(strtolower($subTask->name), $profession) ||
                str_contains(strtolower($task->title), $profession);
     }
 
-    protected function skillMatches(Tasker $tasker, SubTask $subTask, $task): bool
+    protected function skillMatches(User $tasker, SubTask $subTask, $task): bool
     {
         if (!$tasker->skills) {
             return false;
@@ -108,14 +105,14 @@ class TaskerMatchingService
     {
         return $this->findSuitableTaskers($taskRequest, $limit)
             ->map(fn ($tasker) => [
-                'id' => $tasker->id,
-                'name' => $tasker->name,
-                'profession' => $tasker->profession,
-                'city' => $tasker->city,
-                'district' => $tasker->district,
-                'skills' => $tasker->skills,
+                'id'          => $tasker->id,
+                'name'        => $tasker->name,
+                'profession'  => $tasker->profession,
+                'city'        => $tasker->city,
+                'district'    => $tasker->district,
+                'skills'      => $tasker->skills,
                 'match_score' => $tasker->match_score,
-                'phone' => $tasker->phone,
+                'phone'       => $tasker->phone,
             ])
             ->toArray();
     }
