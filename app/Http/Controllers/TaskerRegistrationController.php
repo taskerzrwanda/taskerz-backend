@@ -3,28 +3,25 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\RegisterTaskerRequest;
-use App\Mail\TaskerVerificationMail;
 use App\Models\User;
+use App\Services\EmailNotificationService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 
 class TaskerRegistrationController extends Controller
 {
+    public function __construct(private readonly EmailNotificationService $emails) {}
+
     public function register(RegisterTaskerRequest $request)
     {
         $data = $request->validated();
 
-        $verificationCode = Str::random(6);
-
         $user = User::create(array_merge($data, [
             'role'              => 'tasker',
             'status'            => 'pending',
-            'verification_code' => $verificationCode,
             'email_verified_at' => null,
         ]));
 
-        Mail::to($user->email)->send(new TaskerVerificationMail($verificationCode));
+        $this->issueCode($user);
 
         return response()->json([
             'success' => true,
@@ -39,20 +36,14 @@ class TaskerRegistrationController extends Controller
 
         $user = User::taskers()->where('email', $request->email)->first();
 
-        if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tasker not found',
-            ], 404);
+        // Always 200 regardless of whether a tasker matched — no email enumeration.
+        if ($user && is_null($user->email_verified_at)) {
+            $this->issueCode($user);
         }
-
-        $verificationCode = Str::random(6);
-        $user->update(['verification_code' => $verificationCode]);
-        Mail::to($user->email)->send(new TaskerVerificationMail($verificationCode));
 
         return response()->json([
             'success' => true,
-            'message' => 'Verification code sent',
+            'message' => 'If an account exists for that email, a verification code has been sent.',
         ]);
     }
 
@@ -60,25 +51,40 @@ class TaskerRegistrationController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'code'  => 'required|string',
+            'code'  => 'required|string|size:6',
         ]);
 
-        $user = User::taskers()
-            ->where('email', $request->email)
-            ->where('verification_code', $request->code)
-            ->first();
+        $user = User::taskers()->where('email', $request->email)->first();
 
-        if (!$user) {
+        if (!$user || !hash_equals((string) $user->verification_code, (string) $request->code)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid verification code or email',
             ], 422);
         }
 
-        $user->update([
-            'email_verified_at' => now(),
-            'verification_code' => null,
-        ]);
+        $ttl = (int) config('notifications.verification_code_ttl_minutes');
+        if ($ttl > 0 && $user->verification_code_sent_at
+            && $user->verification_code_sent_at->lt(now()->subMinutes($ttl))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Verification code expired. Please request a new one.',
+                'expired' => true,
+                'email'   => $user->email,
+            ], 422);
+        }
+
+        $isFirstVerification = is_null($user->email_verified_at);
+
+        $user->forceFill([
+            'email_verified_at'         => now(),
+            'verification_code'         => null,
+            'verification_code_sent_at' => null,
+        ])->save();
+
+        if ($isFirstVerification) {
+            $this->emails->sendTaskerWelcome($user);
+        }
 
         $token = auth('api')->login($user);
 
@@ -90,5 +96,17 @@ class TaskerRegistrationController extends Controller
             'token_type' => 'bearer',
             'expires_in' => auth('api')->factory()->getTTL() * 60,
         ]);
+    }
+
+    private function issueCode(User $user): void
+    {
+        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        $user->forceFill([
+            'verification_code'         => $code,
+            'verification_code_sent_at' => now(),
+        ])->save();
+
+        $this->emails->sendVerificationCode($user, $code);
     }
 }

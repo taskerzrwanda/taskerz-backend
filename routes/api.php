@@ -20,6 +20,15 @@ use Illuminate\Support\Facades\Route;
 Route::post('login', [AuthController::class, 'login']);
 Route::post('register', [AuthController::class, 'register']);
 
+// Generic email verification — works for any role (customer + tasker).
+// Tasker-specific aliases below are kept for frontend back-compat.
+Route::post('auth/verify-code', [AuthController::class, 'verifyCode']);
+Route::post('auth/request-verification', [AuthController::class, 'requestVerification']);
+
+// Password reset — both endpoints always return 200 to prevent email enumeration.
+Route::post('auth/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('auth/reset-password', [AuthController::class, 'resetPassword']);
+
 Route::middleware('auth:api')->group(function () {
     Route::get('auth/me', [AuthController::class, 'me']);
     Route::post('auth/refresh', [AuthController::class, 'refresh']);
@@ -99,6 +108,8 @@ Route::middleware(['auth:api', 'admin'])->group(function () {
         Route::delete('/{id}', [TaskRequestController::class, 'destroy']);
 
         Route::post('/{id}/assign', [TaskRequestController::class, 'assignTasker']);
+        Route::post('/{id}/approve', [TaskRequestController::class, 'approve']);
+        Route::post('/{id}/reject', [TaskRequestController::class, 'reject']);
         Route::post('/{id}/complete', [TaskRequestController::class, 'complete']);
         Route::post('/{id}/cancel', [TaskRequestController::class, 'cancel']);
     });

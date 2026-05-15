@@ -31,6 +31,7 @@ class User extends Authenticatable implements JWTSubject
         'longitude',
         'skills',
         'verification_code',
+        'verification_code_sent_at',
         'password_set_token',
         'completed_tasks',
         'rating',
@@ -41,20 +42,33 @@ class User extends Authenticatable implements JWTSubject
         'password',
         'remember_token',
         'verification_code',
+        'verification_code_sent_at',
         'password_set_token',
     ];
 
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
-            'skills'            => 'array',
-            'latitude'          => 'decimal:8',
-            'longitude'         => 'decimal:8',
-            'rating'            => 'decimal:2',
-            'completed_tasks'   => 'integer',
+            'email_verified_at'         => 'datetime',
+            'verification_code_sent_at' => 'datetime',
+            'password'                  => 'hashed',
+            'skills'                    => 'array',
+            'latitude'                  => 'decimal:8',
+            'longitude'                 => 'decimal:8',
+            'rating'                    => 'decimal:2',
+            'completed_tasks'           => 'integer',
         ];
+    }
+
+    /**
+     * Used by Laravel's Password broker. Routes the reset email through
+     * EmailNotificationService so it picks up retries + logging like every
+     * other transactional send.
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        app(\App\Services\EmailNotificationService::class)
+            ->sendPasswordReset($this, $token);
     }
 
     public function getJWTIdentifier()

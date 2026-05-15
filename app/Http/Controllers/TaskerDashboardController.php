@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\TaskRequest;
 use App\Models\User;
+use App\Services\EmailNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class TaskerDashboardController extends Controller
 {
+    public function __construct(private readonly EmailNotificationService $emails) {}
+
     public function overview(Request $request)
     {
         $tasker = auth('api')->user();
@@ -144,6 +147,9 @@ class TaskerDashboardController extends Controller
         }
 
         $taskRequest->markAsCompleted();
+        $taskRequest->load(['subTask', 'tasker']);
+
+        $this->emails->sendTaskRequestCompleted($taskRequest);
 
         return response()->json([
             'success' => true,

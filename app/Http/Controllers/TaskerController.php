@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\EmailNotificationService;
 use Illuminate\Http\Request;
 
 class TaskerController extends Controller
 {
+    public function __construct(private readonly EmailNotificationService $emails) {}
+
     public function index(Request $request)
     {
         $query = User::taskers();
@@ -128,14 +131,32 @@ class TaskerController extends Controller
     public function approve($id)
     {
         $tasker = User::taskers()->findOrFail($id);
+
+        // Only send the approval email when status actually changes — avoids
+        // duplicate emails if an admin clicks approve on an already-approved tasker.
+        $wasAlreadyApproved = $tasker->status === 'approved';
         $tasker->update(['status' => 'approved']);
+
+        if (!$wasAlreadyApproved) {
+            $this->emails->sendTaskerApproved($tasker);
+        }
+
         return response()->json(['message' => 'Tasker approved', 'tasker' => $tasker]);
     }
 
-    public function reject($id)
+    public function reject(Request $request, $id)
     {
+        $request->validate(['reason' => 'nullable|string|max:500']);
+
         $tasker = User::taskers()->findOrFail($id);
+
+        $wasAlreadyRejected = $tasker->status === 'rejected';
         $tasker->update(['status' => 'rejected']);
+
+        if (!$wasAlreadyRejected) {
+            $this->emails->sendTaskerRejected($tasker, $request->input('reason'));
+        }
+
         return response()->json(['message' => 'Tasker rejected', 'tasker' => $tasker]);
     }
 }
