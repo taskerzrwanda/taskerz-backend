@@ -76,7 +76,20 @@ class TaskRequestController extends Controller
         }
 
         try {
-            $taskRequest = TaskRequest::create($validator->validated());
+            $payload = $validator->validated();
+
+            // Honour the JWT when it belongs to a customer — link the request
+            // to their account and source identity fields from the user row so
+            // a logged-in user can't impersonate someone else on submission.
+            $authUser = auth('api')->user();
+            if ($authUser && $authUser->isCustomer()) {
+                $payload['user_id']   = $authUser->id;
+                $payload['full_name'] = $authUser->name;
+                $payload['email']     = $authUser->email;
+                $payload['phone']     = $authUser->phone ?: $payload['phone'];
+            }
+
+            $taskRequest = TaskRequest::create($payload);
             $taskRequest->load('subTask');
 
             $this->emails->sendTaskRequestSubmitted($taskRequest);

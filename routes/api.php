@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\ClientController as AdminClientController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ClientProfileController;
 use App\Http\Controllers\FaqController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SubTaskController;
@@ -55,11 +57,20 @@ Route::prefix('open')->group(function () {
 // ========================================
 // PUBLIC WRITES
 // ========================================
-Route::post('/task-requests', [TaskRequestController::class, 'store']);
+Route::middleware('throttle:guest-task-request')
+    ->post('/task-requests', [TaskRequestController::class, 'store']);
 
 Route::post('/taskers', [TaskerRegistrationController::class, 'register']);
 Route::post('/taskers/request-verification', [TaskerRegistrationController::class, 'requestVerification']);
 Route::post('/taskers/verify-code', [TaskerRegistrationController::class, 'verifyCode']);
+
+// ========================================
+// CLIENT SELF-SERVICE (authenticated, role=user)
+// ========================================
+Route::middleware(['auth:api', 'role:user'])->prefix('me')->group(function () {
+    Route::put('/profile',       [ClientProfileController::class, 'update']);
+    Route::get('/task-requests', [ClientProfileController::class, 'myTaskRequests']);
+});
 
 // ========================================
 // TASKER (authenticated, role=tasker)
@@ -136,6 +147,13 @@ Route::middleware(['auth:api', 'admin'])->group(function () {
         Route::delete('/{id}', [TaskerController::class, 'destroy']);
         Route::put('/{id}/approve', [TaskerController::class, 'approve']);
         Route::put('/{id}/reject', [TaskerController::class, 'reject']);
+    });
+
+    Route::prefix('clients')->group(function () {
+        Route::get('/',        [AdminClientController::class, 'index']);
+        Route::get('/{id}',    [AdminClientController::class, 'show']);
+        Route::put('/{id}',    [AdminClientController::class, 'update']);
+        Route::delete('/{id}', [AdminClientController::class, 'destroy']);
     });
 
     Route::prefix('services')->group(function () {
