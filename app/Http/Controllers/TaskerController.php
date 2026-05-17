@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\InviteTaskerRequest;
 use App\Models\User;
 use App\Services\EmailNotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Password;
 
 class TaskerController extends Controller
 {
@@ -158,5 +160,46 @@ class TaskerController extends Controller
         }
 
         return response()->json(['message' => 'Tasker rejected', 'tasker' => $tasker]);
+    }
+
+    /**
+     * Admin-initiated tasker registration.
+     *
+     * Creates an approved, email-verified tasker with no password, then emails
+     * an invite link backed by the same Password broker token system that
+     * POST /auth/reset-password redeems — so the existing reset-password page
+     * handles initial password setup with no parallel token infrastructure.
+     */
+    public function invite(InviteTaskerRequest $request)
+    {
+        $data = $request->validated();
+
+        $tasker = User::create([
+            'name'              => $data['name'],
+            'email'             => $data['email'],
+            'phone'             => $data['phone'],
+            'profession'        => $data['profession'],
+            'role'              => 'tasker',
+            'status'            => 'approved',
+            'email_verified_at' => now(),
+            'password'          => null,
+        ]);
+
+        $token = Password::broker()->createToken($tasker);
+
+        $inviteUrl = sprintf(
+            '%s/reset-password?token=%s&email=%s',
+            config('notifications.frontend_url'),
+            urlencode($token),
+            urlencode($tasker->email),
+        );
+
+        $this->emails->sendTaskerInvite($tasker, $inviteUrl);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tasker registered. An invite email has been sent.',
+            'tasker'  => $tasker,
+        ], 201);
     }
 }

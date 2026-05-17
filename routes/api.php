@@ -130,6 +130,7 @@ Route::middleware(['auth:api', 'admin'])->group(function () {
 
     Route::prefix('taskers')->group(function () {
         Route::get('/', [TaskerController::class, 'index']);
+        Route::post('/invite', [TaskerController::class, 'invite']);
         Route::get('/{id}', [TaskerController::class, 'show']);
         Route::put('/{id}', [TaskerController::class, 'update']);
         Route::delete('/{id}', [TaskerController::class, 'destroy']);

@@ -8,6 +8,7 @@ use App\Mail\PasswordResetMail;
 use App\Mail\TaskAssignedToRequesterMail;
 use App\Mail\TaskAssignedToTaskerMail;
 use App\Mail\TaskerApprovedMail;
+use App\Mail\TaskerInviteMail;
 use App\Mail\TaskerRejectedMail;
 use App\Mail\TaskerWelcomeMail;
 use App\Mail\TaskRequestApprovedMail;
@@ -97,6 +98,16 @@ class EmailNotificationService
             $tasker->email,
             new TaskerRejectedMail($tasker, $reason),
             'admin.tasker_rejected',
+            ['user_id' => $tasker->id]
+        );
+    }
+
+    public function sendTaskerInvite(User $tasker, string $inviteUrl): void
+    {
+        $this->send(
+            $tasker->email,
+            new TaskerInviteMail($tasker, $inviteUrl),
+            'admin.tasker_invite',
             ['user_id' => $tasker->id]
         );
     }
