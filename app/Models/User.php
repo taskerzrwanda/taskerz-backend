@@ -115,6 +115,16 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(TaskRequest::class)->where('status', 'completed');
     }
 
+    public function customerRequests()
+    {
+        return $this->hasMany(TaskRequest::class, 'customer_id');
+    }
+
+    public function completedCustomerRequests()
+    {
+        return $this->hasMany(TaskRequest::class, 'customer_id')->where('status', 'completed');
+    }
+
     public function scopeAdmins($query)
     {
         return $query->where('role', 'admin');

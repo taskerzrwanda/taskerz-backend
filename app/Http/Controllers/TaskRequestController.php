@@ -83,10 +83,10 @@ class TaskRequestController extends Controller
             // a logged-in user can't impersonate someone else on submission.
             $authUser = auth('api')->user();
             if ($authUser && $authUser->isCustomer()) {
-                $payload['user_id']   = $authUser->id;
-                $payload['full_name'] = $authUser->name;
-                $payload['email']     = $authUser->email;
-                $payload['phone']     = $authUser->phone ?: $payload['phone'];
+                $payload['customer_id'] = $authUser->id;
+                $payload['full_name']   = $authUser->name;
+                $payload['email']       = $authUser->email;
+                $payload['phone']       = $authUser->phone ?: $payload['phone'];
             }
 
             $taskRequest = TaskRequest::create($payload);

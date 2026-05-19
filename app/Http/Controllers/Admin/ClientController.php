@@ -32,8 +32,8 @@ class ClientController extends Controller
         }
 
         $query->withCount([
-            'taskRequests as total_requests',
-            'completedTaskRequests as completed_requests',
+            'customerRequests as total_requests',
+            'completedCustomerRequests as completed_requests',
         ]);
 
         $paginator = $query->latest()->paginate($request->integer('per_page', 20));
@@ -68,7 +68,7 @@ class ClientController extends Controller
             ], 404);
         }
 
-        $client->load(['taskRequests' => function ($q) {
+        $client->load(['customerRequests' => function ($q) {
             $q->with('subTask.task')->latest()->limit(20);
         }]);
 

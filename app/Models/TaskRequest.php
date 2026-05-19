@@ -15,6 +15,7 @@ class TaskRequest extends Model
     protected $fillable = [
         'sub_task_id',
         'user_id',
+        'customer_id',
         'full_name',
         'phone',
         'email',
@@ -39,6 +40,11 @@ class TaskRequest extends Model
     public function tasker()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function customer()
+    {
+        return $this->belongsTo(User::class, 'customer_id');
     }
 
     public function scopePending($query)

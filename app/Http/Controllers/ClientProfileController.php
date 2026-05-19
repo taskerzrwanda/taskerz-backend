@@ -23,7 +23,7 @@ class ClientProfileController extends Controller
     public function myTaskRequests(Request $request)
     {
         $user  = auth('api')->user();
-        $query = $user->taskRequests()->with('subTask.task');
+        $query = $user->customerRequests()->with('subTask.task');
 
         if ($request->filled('status') && in_array(
             $request->status,
