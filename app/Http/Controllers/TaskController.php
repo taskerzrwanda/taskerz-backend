@@ -30,19 +30,27 @@ class TaskController extends Controller
     {
         $query = Task::with('activeSubTasks');
 
-        if ($request->has('status')) {
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        if ($request->has('search')) {
-            $query->where('title', 'like', '%' . $request->search . '%');
+        if ($request->filled('search')) {
+            $query->where('title', 'like', '%' . $request->input('search') . '%');
         }
 
-        $tasks = $query->get();
+        $paginator = $query->latest()->paginate($request->integer('per_page', 20));
 
         return response()->json([
             'success' => true,
-            'data' => $tasks
+            'data' => $paginator->items(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page'    => $paginator->lastPage(),
+                'per_page'     => $paginator->perPage(),
+                'total'        => $paginator->total(),
+                'from'         => $paginator->firstItem(),
+                'to'           => $paginator->lastItem(),
+            ],
         ]);
     }
 
@@ -67,15 +75,11 @@ class TaskController extends Controller
     {
         $data = $request->all();
 
-        if ($request->has('tags') && is_string($request->tags)) {
-            $data['tags'] = json_decode($request->tags, true);
-        }
-
         $validator = Validator::make($data, [
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:12288',
             'title' => 'required|string',
+            'description' => 'nullable|string',
             'status' => 'nullable|in:active,inactive',
-            'tags' => 'nullable|array'
         ]);
 
         if ($validator->fails()) {
@@ -128,15 +132,11 @@ class TaskController extends Controller
 
         $data = $request->all();
 
-        if ($request->has('tags') && is_string($request->tags)) {
-            $data['tags'] = json_decode($request->tags, true);
-        }
-
         $validator = Validator::make($data, [
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:12288',
             'title' => 'required|string',
+            'description' => 'nullable|string',
             'status' => 'nullable|in:active,inactive',
-            'tags' => 'nullable|array'
         ]);
 
         if ($validator->fails()) {

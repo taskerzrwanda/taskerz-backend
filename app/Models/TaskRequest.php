@@ -14,7 +14,8 @@ class TaskRequest extends Model
 
     protected $fillable = [
         'sub_task_id',
-        'tasker_id',
+        'user_id',
+        'customer_id',
         'full_name',
         'phone',
         'email',
@@ -22,16 +23,15 @@ class TaskRequest extends Model
         'description',
         'status',
         'assigned_at',
-        'completed_at'
+        'completed_at',
     ];
 
     protected $casts = [
-        'assigned_at' => 'datetime',
+        'assigned_at'  => 'datetime',
         'completed_at' => 'datetime',
-        'status' => 'string'
+        'status'       => 'string',
     ];
 
-    // Relationships
     public function subTask()
     {
         return $this->belongsTo(SubTask::class);
@@ -39,10 +39,14 @@ class TaskRequest extends Model
 
     public function tasker()
     {
-        return $this->belongsTo(Tasker::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
-    // Scopes
+    public function customer()
+    {
+        return $this->belongsTo(User::class, 'customer_id');
+    }
+
     public function scopePending($query)
     {
         return $query->where('status', 'pending');
@@ -65,32 +69,30 @@ class TaskRequest extends Model
 
     public function scopeUnassigned($query)
     {
-        return $query->whereNull('tasker_id');
+        return $query->whereNull('user_id');
     }
 
     public function scopeAssigned($query)
     {
-        return $query->whereNotNull('tasker_id');
+        return $query->whereNotNull('user_id');
     }
 
-    // Methods
     public function assignToTasker($taskerId)
     {
         $this->update([
-            'tasker_id' => $taskerId,
-            'status' => 'approved',
-            'assigned_at' => now()
+            'user_id'     => $taskerId,
+            'status'      => 'approved',
+            'assigned_at' => now(),
         ]);
     }
 
     public function markAsCompleted()
     {
         $this->update([
-            'status' => 'completed',
-            'completed_at' => now()
+            'status'       => 'completed',
+            'completed_at' => now(),
         ]);
 
-        // Update tasker stats
         if ($this->tasker) {
             $this->tasker->increment('completed_tasks');
         }
@@ -98,8 +100,6 @@ class TaskRequest extends Model
 
     public function cancel()
     {
-        $this->update([
-            'status' => 'cancelled'
-        ]);
+        $this->update(['status' => 'cancelled']);
     }
 }

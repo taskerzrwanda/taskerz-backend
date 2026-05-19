@@ -13,23 +13,31 @@ class SubTaskController extends Controller
     {
         $query = SubTask::with('task');
 
-        if ($request->has('task_id')) {
+        if ($request->filled('task_id')) {
             $query->where('task_id', $request->task_id);
         }
 
-        if ($request->has('status')) {
+        if ($request->filled('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
         }
 
-         if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%' . $request->input('search') . '%');
         }
 
-        $subTasks = $query->latest()->get();
+        $paginator = $query->latest()->paginate($request->integer('per_page', 20));
 
         return response()->json([
             'success' => true,
-            'data' => $subTasks
+            'data' => $paginator->items(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page'    => $paginator->lastPage(),
+                'per_page'     => $paginator->perPage(),
+                'total'        => $paginator->total(),
+                'from'         => $paginator->firstItem(),
+                'to'           => $paginator->lastItem(),
+            ],
         ]);
     }
 
