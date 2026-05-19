@@ -76,12 +76,22 @@ JWT settings live in `.env` (`JWT_SECRET`, `JWT_TTL`, `JWT_REFRESH_TTL`) and `co
 ## Domain
 
 ```
-Task ──< SubTask ──< TaskRequest >── User (role='tasker', nullable, set on assignment)
+Task ──< SubTask ──< TaskRequest ──┬── User (role='user',   customer_id) — submitter
+                                   └── User (role='tasker', user_id)    — assignee
 ```
 
-`tasks`, `sub_tasks`, `task_requests` all use `softDeletes()`. `task_requests.status` is an enum: `pending|approved|cancelled|completed`. The FK column is `task_requests.user_id` (not `tasker_id` — it was renamed). The Eloquent relation is intentionally still called `TaskRequest::tasker()` (returns a `User`) so existing `with('tasker')` callsites and frontend payload keys keep working. `users.skills` is JSON-cast (stored as text).
+`tasks`, `sub_tasks`, `task_requests` all use `softDeletes()`. `task_requests.status` is an enum: `pending|approved|cancelled|completed`. `users.skills` is JSON-cast (stored as text).
+
+`task_requests` carries **two** nullable user FKs — keep them straight:
+
+- `customer_id` (added in migration `2026_05_19_120000_add_customer_id_to_task_requests`) — set by `TaskRequestController::store()` when `auth('api')->user()->isCustomer()` is true. Immutable afterwards; nothing else should write to it. Read via `TaskRequest::customer()` or `User::customerRequests()` / `completedCustomerRequests()`.
+- `user_id` (formerly `tasker_id` — renamed in the merge migration `2026_05_11_120000`) — the assigned tasker. Set by `TaskRequest::assignToTasker($taskerId)`, nulled when the row is created. Read via `TaskRequest::tasker()` (the relation name was kept for historical reasons; the column is now `user_id`) or `User::taskRequests()` / `assignedTasks()` / `completedTaskRequests()`. **All tasker-side queries (`TaskerDashboardController`, analytics earnings, recommendations) match by `user_id`** — don't accidentally reuse `customer_id`.
+
+The `2026_05_19_120000` migration backfills existing rows: any `user_id` that pointed at a `role='user'` was moved to `customer_id`; remaining nulls were filled by matching `task_requests.email` against `users.email WHERE role='user'`.
 
 `POST /api/task-requests/{id}/assign` still accepts a `tasker_id` body param — the value is just a `users.id` with `role='tasker'` (validated via `Rule::exists('users','id')->where('role','tasker')`). Don't rename the param without grepping the frontend.
+
+The admin `GET /api/clients/{id}` response eager-loads the customer's recent submissions; Laravel serializes the relation under the snake_case key `customer_requests` (not `task_requests`). The Clients index uses `withCount(['customerRequests as total_requests', 'completedCustomerRequests as completed_requests'])`.
 
 ## Conventions
 
@@ -94,7 +104,7 @@ Task ──< SubTask ──< TaskRequest >── User (role='tasker', nullable, 
 - **Add new emails by**: (1) creating `app/Mail/SomethingMail.php` that `implements ShouldQueue` + uses the `Concerns\SendsAsTransactional` trait (don't forget `$this->buildQueueable()` in the constructor), (2) creating the blade template under `resources/views/emails/` using `@component('emails.layouts.base', ['title' => '…'])` for shared chrome, (3) adding a `sendXyz(...)` method on `EmailNotificationService`, (4) calling that method from the controller. Tries/backoff/queue are inherited from `config('notifications.queue')`.
 - **Email is queued** — `QUEUE_CONNECTION=database`. Locally run `php artisan queue:work` in a second shell to deliver verification and lifecycle emails during testing. Production runs the worker via supervisor.
 - For tasker admin CRUD (list/show/update/destroy/approve/reject), use `User::taskers()` scope — every method on `TaskerController` already filters by role. Don't query `User` directly without scoping.
-- For tasker dashboard queries, the authenticated tasker is `auth('api')->user()`. Their `TaskRequest`s join by `user_id` (the renamed column).
+- For tasker dashboard queries, the authenticated tasker is `auth('api')->user()`. Their `TaskRequest`s join by `user_id` (the renamed column). For customer "my requests" queries, use `customer_id` via `User::customerRequests()` — see Domain section above.
 
 ## Local dev
 
