@@ -9,12 +9,17 @@ php artisan route:clear || true
 php artisan view:clear || true
 
 # Run migrations on production
-# echo "Running database migrations..."
-# php artisan migrate --force
+echo "Running database migrations..."
+php artisan migrate --force
 
 # Rebuild config cache
 php artisan config:cache || true
 
+# Re-assert storage / bootstrap-cache ownership: the artisan commands above run
+# as root and leave root-owned files inside storage/framework and storage/logs,
+# which then breaks the www-data PHP-FPM workers with "Permission denied".
+chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
 echo "======================================="
 echo "Starting PHP-FPM with Unix socket..."

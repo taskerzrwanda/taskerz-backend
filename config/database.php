@@ -55,7 +55,11 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                // PDO doesn't resolve relative paths against Laravel's base, so
+                // promote a relative MYSQL_ATTR_SSL_CA to an absolute path.
+                PDO::MYSQL_ATTR_SSL_CA => ($sslCa = env('MYSQL_ATTR_SSL_CA'))
+                    ? (str_starts_with($sslCa, '/') ? $sslCa : base_path($sslCa))
+                    : null,
             ]) : [],
         ],
 
@@ -75,7 +79,11 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+                // PDO doesn't resolve relative paths against Laravel's base, so
+                // promote a relative MYSQL_ATTR_SSL_CA to an absolute path.
+                PDO::MYSQL_ATTR_SSL_CA => ($sslCa = env('MYSQL_ATTR_SSL_CA'))
+                    ? (str_starts_with($sslCa, '/') ? $sslCa : base_path($sslCa))
+                    : null,
             ]) : [],
         ],
 
