@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\SubTask;
 use App\Models\Task;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class SubTaskController extends Controller
@@ -68,6 +69,59 @@ class SubTaskController extends Controller
                 'message' => 'Sub-task created successfully'
             ], 201);
         } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function bulkStore(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'task_id' => 'required|exists:tasks,id',
+            'sub_tasks' => 'required|array|min:1|max:50',
+            'sub_tasks.*.name' => 'required|string|max:255',
+            'sub_tasks.*.price' => 'nullable|numeric|min:0',
+            'sub_tasks.*.duration' => 'nullable|string',
+            'sub_tasks.*.description' => 'nullable|string',
+            'sub_tasks.*.status' => 'nullable|in:active,inactive',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $taskId = $request->input('task_id');
+            $rows = $request->input('sub_tasks');
+
+            $created = DB::transaction(function () use ($taskId, $rows) {
+                $models = [];
+                foreach ($rows as $row) {
+                    $models[] = SubTask::create([
+                        'task_id' => $taskId,
+                        'name' => $row['name'],
+                        'price' => $row['price'] ?? null,
+                        'duration' => $row['duration'] ?? null,
+                        'description' => $row['description'] ?? null,
+                        'status' => $row['status'] ?? 'inactive',
+                    ]);
+                }
+                return $models;
+            });
+
+            $data = collect($created)->map(fn ($m) => $m->load('task'))->all();
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+                'message' => count($data) . ' sub-tasks created successfully'
+            ], 201);
+        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()

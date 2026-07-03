@@ -106,6 +106,7 @@ Route::middleware(['auth:api', 'admin'])->group(function () {
     Route::prefix('sub-tasks')->group(function () {
         Route::get('/', [SubTaskController::class, 'index']);
         Route::post('/', [SubTaskController::class, 'store']);
+        Route::post('/bulk', [SubTaskController::class, 'bulkStore']);
         Route::get('/{id}', [SubTaskController::class, 'show']);
         Route::put('/{id}', [SubTaskController::class, 'update']);
         Route::delete('/{id}', [SubTaskController::class, 'destroy']);
