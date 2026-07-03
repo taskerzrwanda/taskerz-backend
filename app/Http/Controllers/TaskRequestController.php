@@ -32,12 +32,17 @@ class TaskRequestController extends Controller
             $query->whereNull('user_id');
         }
 
+        if ($request->filled('is_custom')) {
+            $query->where('is_custom', filter_var($request->is_custom, FILTER_VALIDATE_BOOLEAN));
+        }
+
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
                 $q->where('full_name', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere('location', 'like', "%{$search}%");
+                  ->orWhere('location', 'like', "%{$search}%")
+                  ->orWhere('custom_task_title', 'like', "%{$search}%");
             });
         }
 
@@ -59,13 +64,17 @@ class TaskRequestController extends Controller
 
     public function store(Request $request)
     {
+        $isCustom = filter_var($request->input('is_custom'), FILTER_VALIDATE_BOOLEAN);
+
         $validator = Validator::make($request->all(), [
-            'sub_task_id' => 'required|exists:sub_tasks,id',
-            'full_name'   => 'required|string|max:255',
-            'phone'       => 'required|string|max:20',
-            'email'       => 'nullable|email',
-            'location'    => 'required|string|max:255',
-            'description' => 'required|string',
+            'is_custom'         => 'sometimes|boolean',
+            'sub_task_id'       => [$isCustom ? 'nullable' : 'required', 'nullable', 'exists:sub_tasks,id'],
+            'custom_task_title' => [$isCustom ? 'required' : 'nullable', 'nullable', 'string', 'max:255'],
+            'full_name'         => 'required|string|max:255',
+            'phone'             => 'required|string|max:20',
+            'email'             => 'nullable|email',
+            'location'          => 'required|string|max:255',
+            'description'       => 'required|string',
         ]);
 
         if ($validator->fails()) {
@@ -77,6 +86,16 @@ class TaskRequestController extends Controller
 
         try {
             $payload = $validator->validated();
+
+            // Coerce mutually-exclusive fields so callers can't submit a custom
+            // title alongside a real sub_task_id (or vice versa).
+            if ($isCustom) {
+                $payload['is_custom']   = true;
+                $payload['sub_task_id'] = null;
+            } else {
+                $payload['is_custom']         = false;
+                $payload['custom_task_title'] = null;
+            }
 
             // Honour the JWT when it belongs to a customer — link the request
             // to their account and source identity fields from the user row so

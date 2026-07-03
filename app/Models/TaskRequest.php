@@ -16,6 +16,8 @@ class TaskRequest extends Model
         'sub_task_id',
         'user_id',
         'customer_id',
+        'custom_task_title',
+        'is_custom',
         'full_name',
         'phone',
         'email',
@@ -30,6 +32,7 @@ class TaskRequest extends Model
         'assigned_at'  => 'datetime',
         'completed_at' => 'datetime',
         'status'       => 'string',
+        'is_custom'    => 'boolean',
     ];
 
     public function subTask()

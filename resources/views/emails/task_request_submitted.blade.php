@@ -5,7 +5,7 @@
     <div class="panel">
         <div class="panel-row">
             <div class="panel-label">Service</div>
-            <div class="panel-value">{{ $taskRequest->subTask?->name ?? 'General Task' }}</div>
+            <div class="panel-value">{{ $taskRequest->subTask?->name ?? $taskRequest->custom_task_title ?? 'General Task' }}</div>
         </div>
         <div class="panel-row">
             <div class="panel-label">Location</div>
