@@ -2,28 +2,37 @@
 
 namespace Database\Seeders;
 
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Hash;
 
 class TaskersSeeder extends Seeder
 {
     public function run()
     {
-        // Clear existing taskers if needed
-        // DB::table('taskers')->truncate();
-
-        // Get actual taskers from the provided data
         $taskers = $this->getTaskersFromData();
 
-        // Insert data
-        DB::table('taskers')->insert($taskers);
+        // Insert into the unified users table with role='tasker'.
+        // Skip any whose email already exists (idempotent reseed).
+        $existingEmails = DB::table('users')->pluck('email')->all();
+        $existingSet    = array_flip($existingEmails);
+        $toInsert       = array_values(array_filter(
+            $taskers,
+            fn ($row) => !isset($existingSet[$row['email']])
+        ));
 
-        $this->command->info('✅ Taskers seeded successfully!');
-        $this->command->info('📊 Total Taskers: ' . count($taskers));
-        $this->command->info('✅ Approved: ' . DB::table('taskers')->where('status', 'approved')->count());
-        $this->command->info('⏳ Pending: ' . DB::table('taskers')->where('status', 'pending')->count());
-        $this->command->info('❌ Rejected: ' . DB::table('taskers')->where('status', 'rejected')->count());
+        if (!empty($toInsert)) {
+            DB::table('users')->insert($toInsert);
+        }
+
+        $taskerQuery = DB::table('users')->where('role', 'tasker');
+        $this->command->info('Taskers seeded into users table.');
+        $this->command->info('Inserted this run: ' . count($toInsert) . ' (skipped existing: ' . (count($taskers) - count($toInsert)) . ')');
+        $this->command->info('Total taskers: ' . $taskerQuery->count());
+        $this->command->info('Approved: ' . (clone $taskerQuery)->where('status', 'approved')->count());
+        $this->command->info('Pending:  ' . (clone $taskerQuery)->where('status', 'pending')->count());
+        $this->command->info('Rejected: ' . (clone $taskerQuery)->where('status', 'rejected')->count());
     }
 
     private function getTaskersFromData()
@@ -1358,24 +1367,27 @@ class TaskersSeeder extends Seeder
             $nationality = ucfirst(strtolower($tasker['nationality']));
 
             $taskers[] = [
-                'name' => $tasker['name'],
-                'nationality' => $nationality,
-                'gender' => ucfirst(strtolower($tasker['gender'])),
-                'education' => $this->cleanEducation($tasker['education']),
-                'email' => strtolower($tasker['email']),
-                'phone' => $phone,
-                'profession' => $this->cleanProfession($tasker['profession']),
-                'work_experience' => $tasker['work_experience'],
-                'city' => 'Kigali',
-                'district' => $district,
-                'latitude' => $coordinates['latitude'],
-                'longitude' => $coordinates['longitude'],
-                'skills' => json_encode($skills),
-                'completed_tasks' => 0, // Set to 0 as requested
-                'rating' => 0, // Set to 0 as requested
-                'status' => $tasker['status'],
-                'created_at' => Carbon::now()->subDays(rand(0, 365)),
-                'updated_at' => Carbon::now(),
+                'name'              => $tasker['name'],
+                'email'             => strtolower($tasker['email']),
+                'password'          => Hash::make(env('TASKER_SEED_PASSWORD', 'TaskerSeed!2026')),
+                'role'              => 'tasker',
+                'status'            => $tasker['status'],
+                'email_verified_at' => $tasker['status'] === 'approved' ? Carbon::now() : null,
+                'phone'             => $phone,
+                'nationality'       => $nationality,
+                'gender'            => ucfirst(strtolower($tasker['gender'])),
+                'education'         => $this->cleanEducation($tasker['education']),
+                'profession'        => $this->cleanProfession($tasker['profession']),
+                'work_experience'   => $tasker['work_experience'],
+                'city'              => 'Kigali',
+                'district'          => $district,
+                'latitude'          => $coordinates['latitude'],
+                'longitude'         => $coordinates['longitude'],
+                'skills'            => json_encode($skills),
+                'completed_tasks'   => 0,
+                'rating'            => 0,
+                'created_at'        => Carbon::now()->subDays(rand(0, 365)),
+                'updated_at'        => Carbon::now(),
             ];
         }
 

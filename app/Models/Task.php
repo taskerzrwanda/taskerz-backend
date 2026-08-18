@@ -13,13 +13,12 @@ class Task extends Model
     protected $fillable = [
         'image',
         'title',
+        'description',
         'status',
-        'tags'
     ];
 
     protected $casts = [
-        'tags' => 'array',
-        'status' => 'string'
+        'status' => 'string',
     ];
 
 

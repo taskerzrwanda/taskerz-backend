@@ -3,5 +3,8 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('Welcome to Taskerz API');
+    return response()->json([
+        'success' => true,
+        'message' => 'Welcome to Taskerz API',
+    ]);
 });

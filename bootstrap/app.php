@@ -12,35 +12,21 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Register middleware for API routes
-        $middleware->api(append: [
-            \App\Http\Middleware\BlockBrowserAccess::class,
+        $middleware->alias([
+            'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'role'  => \App\Http\Middleware\RoleMiddleware::class,
         ]);
 
-        // Register middleware alias
-       $middleware->alias([
-    'admin' => \App\Http\Middleware\AdminMiddleware::class,
-    'tasker.auth' => \App\Http\Middleware\TaskerAuthMiddleware::class,
-    ]);
-
+        $middleware->redirectGuestsTo(function ($request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                abort(response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated. Please login first.',
+                ], 401));
+            }
+            return route('login');
+        });
     })
-
-    ->withMiddleware(function (Middleware $middleware) {
-    $middleware->statefulApi();
-
-    // Configure API authentication to return JSON
-    $middleware->redirectGuestsTo(function ($request) {
-        if ($request->expectsJson() || $request->is('api/*')) {
-            abort(response()->json([
-                'success' => false,
-                'message' => 'Unauthenticated. Please login first.'
-            ], 401));
-        }
-        return route('login');
-    });
-})
-
-
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();

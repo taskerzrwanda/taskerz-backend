@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Task;
 use App\Models\SubTask;
 use App\Models\TaskRequest;
-use App\Models\Tasker;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -16,35 +16,60 @@ class AnalyticsController extends Controller
      */
     public function overview()
     {
-        $data = [
-            'tasks' => [
-                'total' => Task::count(),
-                'active' => Task::where('status', 'active')->count(),
-                'inactive' => Task::where('status', 'inactive')->count()
-            ],
-            'sub_tasks' => [
-                'total' => SubTask::count(),
-                'active' => SubTask::where('status', 'active')->count(),
-                'inactive' => SubTask::where('status', 'inactive')->count()
-            ],
-            'task_requests' => [
-                'total' => TaskRequest::count(),
-                'pending' => TaskRequest::where('status', 'pending')->count(),
-                'approved' => TaskRequest::where('status', 'approved')->count(),
-                'completed' => TaskRequest::where('status', 'completed')->count(),
-                'cancelled' => TaskRequest::where('status', 'cancelled')->count()
-            ],
-            'taskers' => [
-                'total' => Tasker::count(),
-                'approved' => Tasker::where('status', 'approved')->count(),
-                'pending' => Tasker::where('status', 'pending')->count(),
-                'rejected' => Tasker::where('status', 'rejected')->count()
-            ]
-        ];
+        $tasks = Task::selectRaw("
+            COUNT(*) as total,
+            SUM(status = 'active') as active,
+            SUM(status = 'inactive') as inactive
+        ")->first();
+
+        $subTasks = SubTask::selectRaw("
+            COUNT(*) as total,
+            SUM(status = 'active') as active,
+            SUM(status = 'inactive') as inactive
+        ")->first();
+
+        $taskRequests = TaskRequest::selectRaw("
+            COUNT(*) as total,
+            SUM(status = 'pending') as pending,
+            SUM(status = 'approved') as approved,
+            SUM(status = 'completed') as completed,
+            SUM(status = 'cancelled') as cancelled
+        ")->first();
+
+        $taskers = User::taskers()->selectRaw("
+            COUNT(*) as total,
+            SUM(status = 'approved') as approved,
+            SUM(status = 'pending') as pending,
+            SUM(status = 'rejected') as rejected
+        ")->first();
 
         return response()->json([
             'success' => true,
-            'data' => $data
+            'data' => [
+                'tasks' => [
+                    'total'    => (int) $tasks->total,
+                    'active'   => (int) $tasks->active,
+                    'inactive' => (int) $tasks->inactive,
+                ],
+                'sub_tasks' => [
+                    'total'    => (int) $subTasks->total,
+                    'active'   => (int) $subTasks->active,
+                    'inactive' => (int) $subTasks->inactive,
+                ],
+                'task_requests' => [
+                    'total'     => (int) $taskRequests->total,
+                    'pending'   => (int) $taskRequests->pending,
+                    'approved'  => (int) $taskRequests->approved,
+                    'completed' => (int) $taskRequests->completed,
+                    'cancelled' => (int) $taskRequests->cancelled,
+                ],
+                'taskers' => [
+                    'total'    => (int) $taskers->total,
+                    'approved' => (int) $taskers->approved,
+                    'pending'  => (int) $taskers->pending,
+                    'rejected' => (int) $taskers->rejected,
+                ],
+            ],
         ]);
     }
 
@@ -139,8 +164,7 @@ class AnalyticsController extends Controller
     {
         $limit = $request->input('limit', 10);
 
-        $topTaskers = Tasker::select('taskers.*')
-            ->where('status', 'approved')
+        $topTaskers = User::approvedTaskers()
             ->orderBy('completed_tasks', 'desc')
             ->orderBy('rating', 'desc')
             ->limit($limit)

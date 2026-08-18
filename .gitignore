@@ -8,7 +8,7 @@
 
 # Environment files
 .env
-.env.*s
+.env.*
 !.env.example
 
 # Logs

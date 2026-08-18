@@ -8,30 +8,24 @@ use Symfony\Component\HttpFoundation\Response;
 
 class AdminMiddleware
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
     public function handle(Request $request, Closure $next): Response
-{
-    $user = auth()->user();
+    {
+        $user = auth('api')->user();
 
-    if (!$user) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Unauthenticated.'
-        ], 401);
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        if (!$user->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Forbidden. Admin access required.',
+            ], 403);
+        }
+
+        return $next($request);
     }
-
-    if (!$user->isAdmin()) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Forbidden. Admin access required.'
-        ], 403);
-    }
-
-    return $next($request);
-}
-
 }
