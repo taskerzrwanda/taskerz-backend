@@ -160,8 +160,10 @@ class TaskRequestController extends Controller
             ], 404);
         }
 
+        // Status is intentionally NOT editable here — lifecycle transitions must
+        // go through the dedicated assign/approve/reject/complete/cancel endpoints
+        // so the matching model transition + notification email always fire.
         $validator = Validator::make($request->all(), [
-            'status'      => 'sometimes|in:pending,approved,cancelled,completed',
             'description' => 'sometimes|string',
         ]);
 
@@ -287,6 +289,7 @@ class TaskRequestController extends Controller
         $taskRequest->load(['subTask', 'tasker']);
 
         $this->emails->sendTaskRequestCancelled($taskRequest, $request->input('reason'));
+        $this->emails->sendTaskCancelledToTasker($taskRequest, $request->input('reason'));
 
         return response()->json([
             'success' => true,
@@ -335,6 +338,7 @@ class TaskRequestController extends Controller
         $taskRequest->load(['subTask', 'tasker']);
 
         $this->emails->sendTaskRequestCancelled($taskRequest, $request->input('reason'));
+        $this->emails->sendTaskCancelledToTasker($taskRequest, $request->input('reason'));
 
         return response()->json([
             'success' => true,
