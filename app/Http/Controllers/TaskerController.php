@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\InviteTaskerRequest;
+use App\Http\Requests\UpdateTaskerRequest;
 use App\Models\User;
 use App\Services\EmailNotificationService;
 use Illuminate\Http\Request;
@@ -106,15 +107,14 @@ class TaskerController extends Controller
         return response()->json($tasker, 200);
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateTaskerRequest $request, $id)
     {
         $tasker = User::taskers()->find($id);
         if (!$tasker) {
             return response()->json(['message' => 'Tasker not found'], 404);
         }
 
-        $payload = $request->except(['role', 'password', 'email', 'verification_code']);
-        $tasker->update($payload);
+        $tasker->update($request->validated());
 
         return response()->json($tasker, 200);
     }
