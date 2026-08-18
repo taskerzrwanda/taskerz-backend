@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Mail\AdminNewTaskRequestMail;
 use App\Mail\EmailVerificationMail;
+use App\Mail\PasswordChangedMail;
 use App\Mail\PasswordResetMail;
+use App\Mail\TaskCancelledForTaskerMail;
 use App\Mail\TaskAssignedToRequesterMail;
 use App\Mail\TaskAssignedToTaskerMail;
 use App\Mail\TaskerApprovedMail;
@@ -74,6 +76,16 @@ class EmailNotificationService
             $user->email,
             new PasswordResetMail($user, $token),
             'auth.password_reset',
+            ['user_id' => $user->id]
+        );
+    }
+
+    public function sendPasswordChanged(User $user): void
+    {
+        $this->send(
+            $user->email,
+            new PasswordChangedMail($user),
+            'auth.password_changed',
             ['user_id' => $user->id]
         );
     }
@@ -204,6 +216,24 @@ class EmailNotificationService
             new TaskRequestCancelledMail($request, $reason),
             'task_request.cancelled',
             ['task_request_id' => $request->id]
+        );
+    }
+
+    /**
+     * Notify the assigned tasker that a task they were given has been called
+     * off. No-ops when no tasker is assigned or reachable.
+     */
+    public function sendTaskCancelledToTasker(TaskRequest $request, ?string $reason = null): void
+    {
+        $tasker = $request->tasker;
+        if (!$request->user_id || !$tasker || !$tasker->email) {
+            return;
+        }
+        $this->send(
+            $tasker->email,
+            new TaskCancelledForTaskerMail($request, $reason),
+            'task_request.tasker_cancelled',
+            ['task_request_id' => $request->id, 'tasker_id' => $tasker->id]
         );
     }
 

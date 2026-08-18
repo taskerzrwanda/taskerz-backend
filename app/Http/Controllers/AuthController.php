@@ -199,13 +199,16 @@ class AuthController extends Controller
             'password'              => ['required', 'confirmed', PasswordRule::min(8)->letters()],
         ]);
 
+        $changedUser = null;
+
         $status = Password::broker()->reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
-            function (User $user, string $password) {
+            function (User $user, string $password) use (&$changedUser) {
                 $user->forceFill([
                     'password'       => Hash::make($password),
                     'remember_token' => \Illuminate\Support\Str::random(60),
                 ])->save();
+                $changedUser = $user;
             }
         );
 
@@ -214,6 +217,10 @@ class AuthController extends Controller
                 'success' => false,
                 'message' => $this->passwordResetErrorMessage($status),
             ], 422);
+        }
+
+        if ($changedUser) {
+            $this->emails->sendPasswordChanged($changedUser);
         }
 
         return response()->json([
@@ -268,6 +275,8 @@ class AuthController extends Controller
         }
 
         $user->update(['password' => Hash::make($request->new_password)]);
+
+        $this->emails->sendPasswordChanged($user);
 
         return response()->json([
             'success' => true,

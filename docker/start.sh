@@ -58,6 +58,27 @@ fi
 echo "✅ PHP-FPM started successfully (PID: $PHP_FPM_PID)"
 
 echo "======================================="
+echo "Starting queue worker (emails + default)..."
+echo "======================================="
+
+# This image has no supervisord (start.sh is the real entrypoint / CMD), so the
+# queue worker must be launched here or NO queued job — every transactional email
+# included — is ever processed. Run it in a self-restarting background loop:
+# --max-time recycles the process hourly to bound memory, and the loop relaunches
+# it. Runs as www-data (like php-fpm) via su-exec to avoid root-owned files under
+# storage/. --queue=emails,default because mailables dispatch onto the `emails`
+# queue (config/notifications.php → MAIL_QUEUE_NAME).
+(
+  while true; do
+    su-exec www-data php /var/www/artisan queue:work \
+      --queue=emails,default --tries=3 --timeout=60 --sleep=3 --max-time=3600
+    echo "⚠️  Queue worker exited; restarting in 2s..."
+    sleep 2
+  done
+) &
+echo "✅ Queue worker started (PID: $!)"
+
+echo "======================================="
 echo "Network configuration:"
 echo "======================================="
 
